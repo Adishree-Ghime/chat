@@ -18,10 +18,8 @@ import com.ai.chat.models.ChatMessage;
 
 
 @Service
-
 public class SarvamAiService {
 @Value("${sarvam.api.key}")
-
 private String apikey;
 
 @Value("${sarvam.model}")
@@ -40,7 +38,6 @@ for (ChatMessage msg: history ) {
 message.add(Map.of(
 "role",msg.getRole(),
 "content",msg.getContent()));
-
 
 }
 message.add(Map.of(

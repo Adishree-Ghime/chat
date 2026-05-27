@@ -3,79 +3,48 @@ package com.ai.chat.config;
 
 
 import org.springframework.context.annotation.Bean;
-
 import org.springframework.context.annotation.Configuration;
 
 
-
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-
 import org.springframework.security.core.userdetails.UserDetailsService;
-
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
 import org.springframework.security.web.SecurityFilterChain;
 
 
 
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
-
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 
 
 import com.ai.chat.models.AppUser;
-
 import com.ai.chat.repository.User_repo;
 
 
 
 @Configuration
-
 public class SecurityConfig {
-
-
-
     private final User_repo user_repo;
-
-
-
     public SecurityConfig(User_repo user_repo) {
-
         this.user_repo = user_repo;
-
     }
-
 
 
     @Bean
 
     public UserDetailsService userDetailsService() {
-
-
-
         return username -> {
 
-
-
             AppUser user = user_repo.findByUsername(username)
-
                     .orElseThrow(() -> new UsernameNotFoundException("User not found"));
 
-
-
             return org.springframework.security.core.userdetails.User
-
                     .withUsername(user.getUsername())
-
                     .password(user.getPassword())
-
                     .roles("USER")
-
                     .build();
 
         };
@@ -87,33 +56,18 @@ public class SecurityConfig {
     @Bean
 
     public BCryptPasswordEncoder passwordEncoder() {
-
         return new BCryptPasswordEncoder();
-
     }
-
 
 
     @Bean
 
     public DaoAuthenticationProvider authenticationProvider() {
-
-
-
         DaoAuthenticationProvider provider =
-
                 new DaoAuthenticationProvider(userDetailsService());
-
-
-
         provider.setPasswordEncoder(passwordEncoder());
-
-
-
         return provider;
-
     }
-
 
 
     // CORS Configuration
@@ -121,34 +75,19 @@ public class SecurityConfig {
     @Bean
 
     public WebMvcConfigurer corsConfigurer() {
-
-
-
         return new WebMvcConfigurer() {
-
-
-
             @Override
-
             public void addCorsMappings(CorsRegistry registry) {
-
-
-
                 registry.addMapping("/**")
-
                         .allowedOrigins("http://localhost:3000")
-
                         .allowedMethods("*")
-
                         .allowedHeaders("*")
-
                         .allowCredentials(true);
-
             }
-
         };
-
     }
+    
+    
 
 
 

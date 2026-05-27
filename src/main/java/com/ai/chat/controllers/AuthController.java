@@ -9,31 +9,21 @@ import java.util.Map;
 
 
 import org.springframework.beans.factory.annotation.Autowired;
-
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
 import org.springframework.web.bind.annotation.GetMapping;
-
 import org.springframework.web.bind.annotation.PostMapping;
-
 import org.springframework.web.bind.annotation.RequestBody;
-
 import org.springframework.web.bind.annotation.RequestMapping;
-
 import org.springframework.web.bind.annotation.RestController;
 
 
-
 import com.ai.chat.models.AppUser;
-
 import com.ai.chat.repository.User_repo;
 
 
 
 @RestController
-
 @RequestMapping("/api/auth")
-
 public class AuthController {
 
     @Autowired
@@ -53,8 +43,7 @@ public class AuthController {
         user_repo.save(user); 
         return "Registration Successful";
     }
-
-    
+  
 
     @GetMapping("/me")
 
