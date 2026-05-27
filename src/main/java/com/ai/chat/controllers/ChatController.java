@@ -26,8 +26,12 @@ public class ChatController {
 	private Chat_repo chatrepo;
 	@Autowired
 	private User_repo user_repo;
-	@Autowired
-	private SarvamAiService sarvamAiService;
+//	@Autowired
+	private final SarvamAiService sarvamAiService;
+	
+	public ChatController(SarvamAiService sarvamAiService) {
+		this.sarvamAiService = sarvamAiService;
+	}
 	
 	@PostMapping("/response")
 	public ChatResponse chat(@RequestBody ChatRequest request, Principal principal) {
