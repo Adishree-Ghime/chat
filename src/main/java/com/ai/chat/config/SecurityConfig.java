@@ -79,7 +79,7 @@ public class SecurityConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOrigins("http://localhost:3000")
+                        .allowedOrigins("http://localhost:3000","https://chatproject-rho.vercel.app")
                         .allowedMethods("*")
                         .allowedHeaders("*")
                         .allowCredentials(true);
