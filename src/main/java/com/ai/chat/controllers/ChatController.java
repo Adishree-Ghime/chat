@@ -57,16 +57,5 @@ public class ChatController {
 		AppUser user = user_repo.findByUsername(principal.getName()).orElseThrow();
 		return chatrepo.findByOrderByCreatedAt(user);
 	}
-	@org.springframework.web.bind.annotation.ExceptionHandler(Exception.class)
-    public org.springframework.http.ResponseEntity<?> handleAllExceptions(Exception ex) {
-        java.util.Map<String, String> errorResponse = new java.util.HashMap<>();
-        errorResponse.put("reply", "Backend Error: " + ex.getMessage());
-        
-        // This ensures the response travels back with a 500 status 
-        // while safely keeping your global CORS/Security filter headers attached
-        return org.springframework.http.ResponseEntity
-                .status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(errorResponse);
-    }
 	
 }
