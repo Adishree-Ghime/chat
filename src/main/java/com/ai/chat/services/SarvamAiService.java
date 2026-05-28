@@ -1,6 +1,7 @@
 package com.ai.chat.services;
 
 import java.util.ArrayList;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,8 +29,8 @@ public class SarvamAiService {
 	   
 	   public String askSarvam(List<ChatMessage> history, String userMessage ) {
 
-		    String url = "https://generativelanguage.googleapis.com/v1beta/models";
-
+		    String url = "https://generativelanguage.googleapis.com/v1beta/models/" 
+		             + model + ":generateContent?key=" + apiKey;
 		    List<Map<String, String>> messages = new ArrayList<>();
 
 		    Map<String, String> systemMsg = new HashMap<>();
