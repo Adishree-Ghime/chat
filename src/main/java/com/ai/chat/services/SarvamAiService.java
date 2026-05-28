@@ -41,8 +41,14 @@ public class SarvamAiService {
             // 2. Build the "contents" array payload
             List<Map<String, Object>> contentsList = new ArrayList<>();
 
+            // Process database chat history rows safely
             if (history != null) {
                 for (ChatMessage msg : history) {
+                    // DEFENSIVE FIX: Skip any corrupted rows where text content is blank or null
+                    if (msg.getContent() == null || msg.getContent().trim().isEmpty()) {
+                        continue; 
+                    }
+
                     Map<String, Object> contentBlock = new HashMap<>();
                     String role = "assistant".equalsIgnoreCase(msg.getRole()) ? "model" : "user";
                     contentBlock.put("role", role);
@@ -55,13 +61,15 @@ public class SarvamAiService {
                 }
             }
 
-            // Append current user prompt
-            Map<String, Object> currentUserBlock = new HashMap<>();
-            currentUserBlock.put("role", "user");
-            Map<String, String> currentTextPart = new HashMap<>();
-            currentTextPart.put("text", userMessage);
-            currentUserBlock.put("parts", Collections.singletonList(currentTextPart));
-            contentsList.add(currentUserBlock);
+            // Append the fresh incoming user query (Only if it contains valid text data)
+            if (userMessage != null && !userMessage.trim().isEmpty()) {
+                Map<String, Object> currentUserBlock = new HashMap<>();
+                currentUserBlock.put("role", "user");
+                Map<String, String> currentTextPart = new HashMap<>();
+                currentTextPart.put("text", userMessage);
+                currentUserBlock.put("parts", Collections.singletonList(currentTextPart));
+                contentsList.add(currentUserBlock);
+            }
 
             // 3. Assemble Root Payload map
             Map<String, Object> rootPayload = new HashMap<>();
@@ -78,10 +86,10 @@ public class SarvamAiService {
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(rootPayload, headers);
 
-            // 5. Post to Gemini Endpoint (Receiving response directly as a structural Map)
+            // 5. Post to Gemini Endpoint
             ResponseEntity<Map> response = restTemplate.postForEntity(targetUrl, entity, Map.class);
 
-            // 6. Navigate the response map tree safely without Jackson libraries
+            // 6. Navigate response map tree structural keys cleanly
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map<String, Object> body = response.getBody();
                 List<Map<String, Object>> candidates = (List<Map<String, Object>>) body.get("candidates");
