@@ -1,7 +1,7 @@
 package com.ai.chat.services;
 
 import java.util.ArrayList;
-
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,207 +18,92 @@ import com.ai.chat.models.ChatMessage;
 
 @Service
 public class SarvamAiService {
-	
-	@Value("${sarvam.api.key}")
-	   private String apiKey;
-	   
-	   @Value("${sarvam.model}")
-	   private String model;
-	   
-	   private final RestTemplate restTemplate = new RestTemplate();
-	   
-	   public String askSarvam(List<ChatMessage> history, String userMessage ) {
 
-		    String url = "https://generativelanguage.googleapis.com/v1beta/models/" 
-		             + model + ":generateContent?key=" + apiKey;
-		    List<Map<String, String>> messages = new ArrayList<>();
+    @Value("${sarvam.api.key}")
+    private String apiKey;
 
-		    Map<String, String> systemMsg = new HashMap<>();
-		    systemMsg.put("role", "system");
-		    systemMsg.put("content", "You are a helpful AI assistant.");
-		    messages.add(systemMsg);
+    @Value("${sarvam.model}")
+    private String model;
 
-//		    for (ChatMessage msg : history) {
-//
-//		        if (msg == null) continue;
-//
-//		        Map<String, String> map = new HashMap<>();
-//
-//		        map.put("role",
-//		                msg.getRole() != null ? msg.getRole() : "user");
-//
-//		        map.put("content",
-//		                msg.getContent() != null ? msg.getContent() : "");
-//
-//		        messages.add(map);
-//		    }
-		    for (ChatMessage msg : history) {
+    private final RestTemplate restTemplate;
 
-		        if (msg == null) {
-		            continue;
-		        }
+    public SarvamAiService() {
+        this.restTemplate = new RestTemplate();
+    }
 
-		        if (msg.getContent() == null ||
-		            msg.getContent().trim().isEmpty()) {
+    @SuppressWarnings("unchecked")
+    public String askSarvam(List<ChatMessage> history, String userMessage) {
+        try {
+            // 1. Build the Gemini API Endpoint URL
+            String targetUrl = "https://generativelanguage.googleapis.com/v1beta/models/" 
+                         + this.model + ":generateContent?key=" + this.apiKey;
 
-		            continue;
-		        }
+            // 2. Build the "contents" array payload
+            List<Map<String, Object>> contentsList = new ArrayList<>();
 
-		        Map<String, String> map = new HashMap<>();
+            if (history != null) {
+                for (ChatMessage msg : history) {
+                    Map<String, Object> contentBlock = new HashMap<>();
+                    String role = "assistant".equalsIgnoreCase(msg.getRole()) ? "model" : "user";
+                    contentBlock.put("role", role);
+                    
+                    Map<String, String> textPart = new HashMap<>();
+                    textPart.put("text", msg.getContent());
+                    contentBlock.put("parts", Collections.singletonList(textPart));
+                    
+                    contentsList.add(contentBlock);
+                }
+            }
 
-		        map.put("role",
-		                msg.getRole() != null ? msg.getRole() : "user");
+            // Append current user prompt
+            Map<String, Object> currentUserBlock = new HashMap<>();
+            currentUserBlock.put("role", "user");
+            Map<String, String> currentTextPart = new HashMap<>();
+            currentTextPart.put("text", userMessage);
+            currentUserBlock.put("parts", Collections.singletonList(currentTextPart));
+            contentsList.add(currentUserBlock);
 
-		        map.put("content", msg.getContent().trim());
+            // 3. Assemble Root Payload map
+            Map<String, Object> rootPayload = new HashMap<>();
+            rootPayload.put("contents", contentsList);
 
-		        messages.add(map);
-		    }
+            Map<String, Object> generationConfig = new HashMap<>();
+            generationConfig.put("temperature", 0.7);
+            generationConfig.put("maxOutputTokens", 1000); 
+            rootPayload.put("generationConfig", generationConfig);
 
-		    Map<String, String> userMap = new HashMap<>();
-		    userMap.put("role", "user");
-//		    userMap.put("content",
-//		            userMessage != null ? userMessage : "");
-		    if (userMessage == null || userMessage.trim().isEmpty()) {
-		        throw new IllegalArgumentException(
-		            "User message cannot be empty");
-		    }
+            // 4. Configure HTTP Headers
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
 
-		    userMap.put("content", userMessage.trim());
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(rootPayload, headers);
 
-		    messages.add(userMap);
+            // 5. Post to Gemini Endpoint (Receiving response directly as a structural Map)
+            ResponseEntity<Map> response = restTemplate.postForEntity(targetUrl, entity, Map.class);
 
-		    Map<String, Object> body = new HashMap<>();
-		    body.put("model", model);
-		    body.put("messages", messages);
-		    body.put("temperature", 0.2);
-		    body.put("max_tokens", 1000);
+            // 6. Navigate the response map tree safely without Jackson libraries
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                Map<String, Object> body = response.getBody();
+                List<Map<String, Object>> candidates = (List<Map<String, Object>>) body.get("candidates");
+                
+                if (candidates != null && !candidates.isEmpty()) {
+                    Map<String, Object> firstCandidate = candidates.get(0);
+                    Map<String, Object> content = (Map<String, Object>) firstCandidate.get("content");
+                    
+                    if (content != null) {
+                        List<Map<String, Object>> parts = (List<Map<String, Object>>) content.get("parts");
+                        if (parts != null && !parts.isEmpty()) {
+                            return (String) parts.get(0).get("text");
+                        }
+                    }
+                }
+            }
+            
+            return "Error: Empty response body received from Gemini API.";
 
-		    HttpHeaders headers = new HttpHeaders();
-		    headers.setContentType(MediaType.APPLICATION_JSON);
-
-		    HttpEntity<Map<String, Object>> entity =
-		            new HttpEntity<>(body, headers);
-
-		    ResponseEntity<Map> response =
-		            restTemplate.postForEntity(url, entity, Map.class);
-
-		    List choices = (List) response.getBody().get("choices");
-
-		    Map firstChoice = (Map) choices.get(0);
-
-		    Map message1 = (Map) firstChoice.get("message");
-
-		    return (String) message1.get("content");
-		}
-	   
-//	   public String askSarvam(List<ChatMessage> history, String userMessage ) {
-//	       String url = "https://api.sarvam.ai/v1/chat/completions";
-//	       List<Map<String, String>> message = new ArrayList<>();
-//	       
-//	       message.add(Map.of(
-//	               "role","system","content","You are a help AI assistance."));
-//	       
-//	       for (ChatMessage msg: history ) {
-//	           message.add(Map.of(
-//	                   "role",msg.getRole(),
-//	                   "content",msg.getContent()));
-//	       }
-//	       
-//	       message.add(Map.of(
-//	               "role","user",
-//	               "content", userMessage));
-//	       
-//	       Map<String, Object> body = new HashMap<>();
-//	       body.put("model", model);
-//	       body.put("messages", message);
-//	       body.put("temperature", 0.2);
-//	       body.put("max_tokens", 1000);
-//	       
-//	       HttpHeaders header = new HttpHeaders();
-//	       header.setContentType(MediaType.APPLICATION_JSON);
-//	       
-//	       header.setBearerAuth(apiKey);
-//	       HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, header);
-//	       
-//	       ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
-//	       
-//	       List choice = (List) response.getBody().get("choices");
-//	       
-//	       Map firstChoice = (Map) choice.get(0);
-//	       Map message1 = (Map) firstChoice.get("message");
-//	       
-//	       return (String) message1.get("content");
-//	   }
-//
-// @Value("${sarvam.api.key}")
-// private String apiKey;
-//	
-// @Value("${sarvam.model}")
-// private String model;
-//	
-// private final RestTemplate restTemplate = new RestTemplate();
-//	
-// public String askSarvam(List<ChatMessage> history, String userMessage) {
-//  String url = "https://api.sarvam.ai/v1/chat/completions";
-//  List<Map<String, String>> messageList = new ArrayList<>();
-//  
-//  // Safe System Message addition
-//  Map<String, String> systemMsg = new HashMap<>();
-//  systemMsg.put("role", "system");
-//  systemMsg.put("content", "You are a helpful AI assistant.");
-//  messageList.add(systemMsg);
-//  
-//  // FIXED: Safe loop that doesn't trigger NullPointerException on Map.of()
-//  if (history != null) {
-//      for (ChatMessage msg : history) {
-//          if (msg.getRole() != null && msg.getContent() != null) {
-//              Map<String, String> msgMap = new HashMap<>();
-//              msgMap.put("role", msg.getRole());
-//              msgMap.put("content", msg.getContent());
-//              messageList.add(msgMap);
-//          }
-//      }
-//  }
-//  
-//  // Safe User Message addition
-//  Map<String, String> userMsgMap = new HashMap<>();
-//  userMsgMap.put("role", "user");
-//  userMsgMap.put("content", userMessage != null ? userMessage : "");
-//  messageList.add(userMsgMap);
-//  
-//  Map<String, Object> body = new HashMap<>();
-//  body.put("model", model != null ? model : "sarvam-2b");
-//  body.put("messages", messageList);
-//  body.put("temperature", 0.2);
-//  body.put("max_tokens", 1000);
-//  
-//  HttpHeaders header = new HttpHeaders();
-//  header.setContentType(MediaType.APPLICATION_JSON);
-//  
-//  // Check against empty variables
-//  if (apiKey != null && !apiKey.isEmpty()) {
-//      header.setBearerAuth(apiKey);
-//  } else {
-//      throw new IllegalStateException("Sarvam API Key is missing or null!");
-//  }
-//  
-//  HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, header);
-//  
-//  try {
-//      ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
-//      
-//      if (response.getBody() != null && response.getBody().containsKey("choices")) {
-//          List choices = (List) response.getBody().get("choices");
-//          if (choices != null && !choices.isEmpty()) {
-//              Map firstChoice = (Map) choices.get(0);
-//              Map messageObj = (Map) firstChoice.get("message");
-//              return messageObj.get("content").toString();
-//          }
-//      }
-//      return "Error: Empty response body received from AI service.";
-//  } catch (Exception e) {
-//      return "AI service error: " + e.getMessage();
-//  }
-// }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error calling Gemini Backend: " + e.getMessage();
+        }
+    }
 }
-
