@@ -28,7 +28,7 @@ public class SarvamAiService {
 	   
 	   public String askSarvam(List<ChatMessage> history, String userMessage ) {
 
-		    String url = "https://api.sarvam.ai/v1/chat/completions";
+		    String url = "https://generativelanguage.googleapis.com/v1beta/models";
 
 		    List<Map<String, String>> messages = new ArrayList<>();
 
