@@ -95,7 +95,6 @@ public class SarvamAiService {
 
 		    HttpHeaders headers = new HttpHeaders();
 		    headers.setContentType(MediaType.APPLICATION_JSON);
-		    headers.setBearerAuth(apiKey);
 
 		    HttpEntity<Map<String, Object>> entity =
 		            new HttpEntity<>(body, headers);
