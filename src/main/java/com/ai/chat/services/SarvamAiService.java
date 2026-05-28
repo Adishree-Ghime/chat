@@ -37,25 +37,52 @@ public class SarvamAiService {
 		    systemMsg.put("content", "You are a helpful AI assistant.");
 		    messages.add(systemMsg);
 
+//		    for (ChatMessage msg : history) {
+//
+//		        if (msg == null) continue;
+//
+//		        Map<String, String> map = new HashMap<>();
+//
+//		        map.put("role",
+//		                msg.getRole() != null ? msg.getRole() : "user");
+//
+//		        map.put("content",
+//		                msg.getContent() != null ? msg.getContent() : "");
+//
+//		        messages.add(map);
+//		    }
 		    for (ChatMessage msg : history) {
 
-		        if (msg == null) continue;
+		        if (msg == null) {
+		            continue;
+		        }
+
+		        if (msg.getContent() == null ||
+		            msg.getContent().trim().isEmpty()) {
+
+		            continue;
+		        }
 
 		        Map<String, String> map = new HashMap<>();
 
 		        map.put("role",
 		                msg.getRole() != null ? msg.getRole() : "user");
 
-		        map.put("content",
-		                msg.getContent() != null ? msg.getContent() : "");
+		        map.put("content", msg.getContent().trim());
 
 		        messages.add(map);
 		    }
 
 		    Map<String, String> userMap = new HashMap<>();
 		    userMap.put("role", "user");
-		    userMap.put("content",
-		            userMessage != null ? userMessage : "");
+//		    userMap.put("content",
+//		            userMessage != null ? userMessage : "");
+		    if (userMessage == null || userMessage.trim().isEmpty()) {
+		        throw new IllegalArgumentException(
+		            "User message cannot be empty");
+		    }
+
+		    userMap.put("content", userMessage.trim());
 
 		    messages.add(userMap);
 
